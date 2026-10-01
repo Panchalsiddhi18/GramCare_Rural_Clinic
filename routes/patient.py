@@ -1,5 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    jsonify
+)
+
 from flask_login import login_required, current_user
+
 from models.user import Patient
 from models import db
 from models.clinic import Clinic, Doctor
@@ -30,58 +40,102 @@ def dashboard():
     patient = current_user.patient_profile
     today = date.today()
 
-    active_appointment = Appointment.query.filter(
-        Appointment.patient_id == patient.id,
-        Appointment.appointment_date == today,
-        Appointment.status.in_([
-            'BOOKED',
-            'CHECKED-IN',
-            'WAITING',
-            'NOW SERVING'
-        ])
-    ).first()
+    # -----------------------------------------------------
+    # ACTIVE APPOINTMENT
+    # -----------------------------------------------------
+
+    active_appointment = (
+        Appointment.query
+        .filter(
+            Appointment.patient_id == patient.id,
+            Appointment.appointment_date == today,
+            Appointment.status.in_([
+                'BOOKED',
+                'CHECKED-IN',
+                'WAITING',
+                'NOW SERVING'
+            ])
+        )
+        .order_by(
+            Appointment.token_number.asc()
+        )
+        .first()
+    )
 
     queue_info = None
 
-    if active_appointment and active_appointment.status in [
-        'WAITING',
-        'NOW SERVING'
-    ]:
+    # -----------------------------------------------------
+    # SHOW APPOINTMENT INFORMATION
+    # FOR ALL ACTIVE STATUSES
+    # -----------------------------------------------------
+
+    if active_appointment:
 
         clinic = active_appointment.clinic
         doctor = active_appointment.doctor
 
-        # Current serving token for this doctor
-        serving = Appointment.query.filter_by(
-            doctor_id=doctor.id,
-            appointment_date=today,
-            status='NOW SERVING'
-        ).first()
-
-        current_token = serving.token_number if serving else 0
-
-        # Waiting list for selected doctor
-        waiting_list = Appointment.query.filter(
-            Appointment.doctor_id == doctor.id,
-            Appointment.appointment_date == today,
-            Appointment.status.in_([
-                'CHECKED-IN',
-                'WAITING'
-            ])
-        ).all()
-
-        waiting_list.sort(
-            key=lambda appointment:
-            appointment.calculate_effective_priority()
+        # Current serving token
+        serving = (
+            Appointment.query
+            .filter(
+                Appointment.doctor_id == doctor.id,
+                Appointment.appointment_date == today,
+                Appointment.status == 'NOW SERVING'
+            )
+            .order_by(
+                Appointment.token_number.asc()
+            )
+            .first()
         )
+
+        current_token = (
+            serving.token_number
+            if serving
+            else 0
+        )
+
+        # Patients currently waiting
+        waiting_list = (
+            Appointment.query
+            .filter(
+                Appointment.doctor_id == doctor.id,
+                Appointment.appointment_date == today,
+                Appointment.status.in_([
+                    'BOOKED',
+                    'CHECKED-IN',
+                    'WAITING',
+                    'NOW SERVING'
+                ])
+            )
+            .order_by(
+                Appointment.token_number.asc()
+            )
+            .all()
+        )
+
+        # -------------------------------------------------
+        # FIND PATIENTS AHEAD
+        # -------------------------------------------------
 
         patients_ahead = 0
 
-        for index, appointment in enumerate(waiting_list):
+        for appointment in waiting_list:
 
             if appointment.id == active_appointment.id:
-                patients_ahead = index
                 break
+
+            if appointment.status in [
+                'BOOKED',
+                'CHECKED-IN',
+                'WAITING',
+                'NOW SERVING'
+            ]:
+                patients_ahead += 1
+
+        # If patient is already being served,
+        # nobody should be shown ahead.
+        if active_appointment.status == 'NOW SERVING':
+            patients_ahead = 0
 
         estimated_wait = (
             patients_ahead *
@@ -97,34 +151,58 @@ def dashboard():
             'doctor_name': doctor.user.full_name,
             'doctor_specialization': doctor.specialization,
             'clinic_name': clinic.name,
-            'status': active_appointment.status
+            'status': active_appointment.status,
+            'time_slot': active_appointment.time_slot
         }
+
+    # -----------------------------------------------------
+    # APPOINTMENT HISTORY
+    # -----------------------------------------------------
 
     history = (
         Appointment.query
-        .filter_by(patient_id=patient.id)
-        .order_by(Appointment.created_at.desc())
+        .filter_by(
+            patient_id=patient.id
+        )
+        .order_by(
+            Appointment.created_at.desc()
+        )
         .all()
     )
 
+    # -----------------------------------------------------
+    # NOTIFICATIONS
+    # -----------------------------------------------------
+
     notifications = (
         Notification.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc())
+        .filter_by(
+            user_id=current_user.id
+        )
+        .order_by(
+            Notification.created_at.desc()
+        )
         .limit(5)
         .all()
     )
 
     return render_template(
-        'patient_dashboard.html',
-        active=active_appointment,
-        queue_info=queue_info,
-        history=history,
-        notifications=notifications
-    )
+    'patient_dashboard.html',
+    active=active_appointment,
+    active_appointment=active_appointment,
+    queue_info=queue_info,
+    history=history,
+    notifications=notifications
+)
+
+# =========================================================
+# HEALTH RECORD
+# =========================================================
+
 @patient_bp.route('/health-record')
 @login_required
 def health_record():
+
     if current_user.role != 'patient':
         return redirect(url_for('auth.login'))
 
@@ -138,20 +216,15 @@ def health_record():
         history=patient.appointments
     )
 
+
 # =========================================================
-# BOOK APPOINTMENT
+# EDIT HEALTH RECORD
 # =========================================================
 
-@patient_bp.route('/book', methods=['GET', 'POST'])
-@login_required
-def book():
-
-    if current_user.role != 'patient':
-        return redirect(url_for('index'))
-
-    patient = current_user.patient_profile
-    today = date.today()
-@patient_bp.route('/health-record/edit', methods=['GET', 'POST'])
+@patient_bp.route(
+    '/health-record/edit',
+    methods=['GET', 'POST']
+)
 @login_required
 def edit_health_record():
 
@@ -164,29 +237,49 @@ def edit_health_record():
 
     if request.method == 'POST':
 
-        patient.age = request.form.get('age', type=int)
-        patient.gender = request.form.get('gender', '').strip()
-        patient.village = request.form.get('village', '').strip()
-        patient.abha_id = request.form.get('abha_id', '').strip()
+        patient.age = request.form.get(
+            'age',
+            type=int
+        )
+
+        patient.gender = request.form.get(
+            'gender',
+            ''
+        ).strip()
+
+        patient.village = request.form.get(
+            'village',
+            ''
+        ).strip()
+
+        patient.abha_id = request.form.get(
+            'abha_id',
+            ''
+        ).strip()
 
         patient.blood_group = request.form.get(
-            'blood_group', ''
+            'blood_group',
+            ''
         ).strip()
 
         patient.emergency_contact = request.form.get(
-            'emergency_contact', ''
+            'emergency_contact',
+            ''
         ).strip()
 
         patient.allergies = request.form.get(
-            'allergies', ''
+            'allergies',
+            ''
         ).strip()
 
         patient.current_medications = request.form.get(
-            'current_medications', ''
+            'current_medications',
+            ''
         ).strip()
 
         patient.medical_history = request.form.get(
-            'medical_history', ''
+            'medical_history',
+            ''
         ).strip()
 
         db.session.commit()
@@ -204,8 +297,27 @@ def edit_health_record():
         'edit_health_record.html',
         patient=patient
     )
+
+
+# =========================================================
+# BOOK APPOINTMENT
+# =========================================================
+
+@patient_bp.route(
+    '/book',
+    methods=['GET', 'POST']
+)
+@login_required
+def book():
+
+    if current_user.role != 'patient':
+        return redirect(url_for('index'))
+
+    patient = current_user.patient_profile
+    today = date.today()
+
     # -----------------------------------------------------
-    # POST - CREATE APPOINTMENT
+    # POST
     # -----------------------------------------------------
 
     if request.method == 'POST':
@@ -230,7 +342,10 @@ def edit_health_record():
             '09:00 AM - 10:00 AM'
         )
 
-        # Validate doctor
+        # -------------------------------------------------
+        # DOCTOR
+        # -------------------------------------------------
+
         doctor = Doctor.query.get(doctor_id)
 
         if not doctor:
@@ -244,7 +359,10 @@ def edit_health_record():
                 url_for('patient.book')
             )
 
-        # Validate clinic
+        # -------------------------------------------------
+        # CLINIC
+        # -------------------------------------------------
+
         clinic = Clinic.query.get(clinic_id)
 
         if not clinic:
@@ -259,10 +377,9 @@ def edit_health_record():
             )
 
         # -------------------------------------------------
-        # IMPORTANT SECURITY / DATA VALIDATION
+        # DOCTOR + CLINIC VALIDATION
         # -------------------------------------------------
 
-        # Doctor must belong to selected clinic
         if doctor.clinic_id != clinic.id:
 
             flash(
@@ -274,11 +391,15 @@ def edit_health_record():
                 url_for('patient.book')
             )
 
-        # Doctor must be available
+        # -------------------------------------------------
+        # DOCTOR AVAILABILITY
+        # -------------------------------------------------
+
         if not doctor.is_available:
 
             flash(
-                'This doctor is currently unavailable. Please select another doctor.',
+                'This doctor is currently unavailable. '
+                'Please select another doctor.',
                 'warning'
             )
 
@@ -286,11 +407,18 @@ def edit_health_record():
                 url_for('patient.book')
             )
 
-        # Category must match doctor specialization
-        if specialization and doctor.specialization != specialization:
+        # -------------------------------------------------
+        # SPECIALIZATION
+        # -------------------------------------------------
+
+        if (
+            specialization
+            and doctor.specialization != specialization
+        ):
 
             flash(
-                'Please select a doctor from the selected specialization.',
+                'Please select a doctor from the '
+                'selected specialization.',
                 'danger'
             )
 
@@ -299,7 +427,7 @@ def edit_health_record():
             )
 
         # -------------------------------------------------
-        # CHECK EXISTING APPOINTMENT
+        # EXISTING APPOINTMENT
         # -------------------------------------------------
 
         existing = (
@@ -320,7 +448,8 @@ def edit_health_record():
         if existing:
 
             flash(
-                'You already have an active appointment scheduled for today.',
+                'You already have an active appointment '
+                'scheduled for today.',
                 'warning'
             )
 
@@ -329,7 +458,7 @@ def edit_health_record():
             )
 
         # -------------------------------------------------
-        # GENERATE TOKEN FOR SELECTED DOCTOR
+        # TOKEN
         # -------------------------------------------------
 
         max_token = (
@@ -370,15 +499,17 @@ def edit_health_record():
         # NOTIFICATION
         # -------------------------------------------------
 
+        doctor_name = doctor.user.full_name
+
         notification = Notification(
             user_id=current_user.id,
             message=(
                 f"Appointment confirmed with "
-                f"Dr. {doctor.user.full_name.replace('Dr. ', '')} "
+                f"Dr. {doctor_name.replace('Dr. ', '')} "
                 f"at {clinic.name}. "
                 f"Your Token Number is #{next_token}."
             ),
-            category="BOOKING"
+            category='BOOKING'
         )
 
         db.session.add(notification)
@@ -386,7 +517,7 @@ def edit_health_record():
 
         flash(
             f'Appointment booked successfully! '
-            f'Token #{next_token} with Dr. {doctor.user.full_name}.',
+            f'Token #{next_token} with Dr. {doctor_name}.',
             'success'
         )
 
@@ -395,12 +526,14 @@ def edit_health_record():
         )
 
     # -----------------------------------------------------
-    # GET - BOOKING PAGE
+    # GET
     # -----------------------------------------------------
 
     clinics = (
         Clinic.query
-        .order_by(Clinic.name.asc())
+        .order_by(
+            Clinic.name.asc()
+        )
         .all()
     )
 
@@ -409,13 +542,11 @@ def edit_health_record():
         .join(Doctor.user)
         .order_by(
             Doctor.specialization.asc(),
-            Doctor.user.has().expression
-            if False else Doctor.id
+            Doctor.id.asc()
         )
         .all()
     )
 
-    # Unique specializations
     specializations = sorted(
         {
             doctor.specialization
@@ -434,12 +565,14 @@ def edit_health_record():
 
 # =========================================================
 # DOCTOR API
-# Used by booking page for dynamic filtering
 # =========================================================
 
 @patient_bp.route('/doctors')
 @login_required
 def doctors_api():
+
+    if current_user.role != 'patient':
+        return jsonify([]), 403
 
     clinic_id = request.args.get(
         'clinic_id',
@@ -470,7 +603,10 @@ def doctors_api():
     doctors = (
         query
         .join(Doctor.user)
-        .order_by(Doctor.user.has().expression if False else Doctor.id)
+        .order_by(
+            Doctor.specialization.asc(),
+            Doctor.id.asc()
+        )
         .all()
     )
 
@@ -494,7 +630,10 @@ def doctors_api():
 # CANCEL APPOINTMENT
 # =========================================================
 
-@patient_bp.route('/cancel/<int:id>', methods=['POST'])
+@patient_bp.route(
+    '/cancel/<int:id>',
+    methods=['POST']
+)
 @login_required
 def cancel(id):
 

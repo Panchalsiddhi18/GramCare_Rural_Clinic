@@ -1,1 +1,290 @@
-{% extends 'base.html' %}{% block title %}Doctor Workstation | GramCare{% endblock %}{% block heading %}Doctor workstation{% endblock %}{% block content %}<div class="doctor-banner"><div><span class="eyebrow">CLINICAL WORKSPACE</span><h2>Dr. {{ doctor.user.full_name }}</h2><p>{{ doctor.specialization }} · {{ doctor.clinic.name }} · {{ doctor.room_number }}</p></div><div class="doctor-stat"><b>{{ completed_count }}</b><span>completed today</span></div></div><div class="content-grid"><section class="panel wide"><div class="panel-head"><h3>Waiting queue</h3><span class="muted">{{ waiting|length }} patients</span></div>{% for a in waiting %}<div class="queue-row"><div class="queue-token">#{{ a.token_number }}</div><div class="queue-person"><b>{{ a.patient.user.full_name }}</b><small>Age {{ a.patient.age or '—' }} · {{ a.patient.gender or '—' }} · {{ a.patient.village or '—' }}</small></div><span class="priority p-{{ a.priority|lower }}">{{ a.priority }}</span></div>{% else %}<p class="muted">No patients waiting.</p>{% endfor %}</section><section class="panel"><span class="eyebrow">NOW SERVING</span>{% if serving %}<div class="big-token">#{{ serving.token_number }}</div><h3>{{ serving.patient.user.full_name }}</h3><p class="muted">{{ serving.patient.village }}</p><form method="post" action="{{ url_for('doctor.complete',id=serving.id) }}"><button class="btn btn-primary w-100">Mark consultation complete</button></form>{% else %}<div class="empty-state compact"><i class="fa-solid fa-mug-hot"></i><p>No active consultation.</p></div>{% endif %}</section></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}
+Doctor Workstation | GramCare
+{% endblock %}
+
+{% block heading %}
+Doctor workstation
+{% endblock %}
+
+{% block content %}
+
+
+<!-- =====================================================
+     DOCTOR HEADER
+====================================================== -->
+
+<div class="doctor-banner">
+
+    <div>
+
+        <span class="eyebrow">
+            CLINICAL WORKSPACE
+        </span>
+
+        <h2>
+            {{ doctor.user.full_name }}
+        </h2>
+
+        <p>
+            {{ doctor.specialization }}
+            ·
+            {{ doctor.clinic.name }}
+            ·
+            {{ doctor.room_number }}
+        </p>
+
+    </div>
+
+
+    <div class="doctor-stat">
+
+        <b>
+            {{ completed_count }}
+        </b>
+
+        <span>
+            completed today
+        </span>
+
+    </div>
+
+</div>
+
+
+<div class="content-grid">
+
+
+    <!-- =================================================
+         WAITING QUEUE
+    ================================================== -->
+
+    <section class="panel wide">
+
+        <div class="panel-head">
+
+            <div>
+
+                <h3>
+                    Today's queue
+                </h3>
+
+                <span class="muted">
+                    {{ waiting|length }} patients waiting
+                </span>
+
+            </div>
+
+        </div>
+
+
+        {% for a in waiting %}
+
+
+        <div class="queue-row">
+
+
+            <!-- TOKEN -->
+
+            <div class="queue-token">
+
+                #{{ a.token_number }}
+
+            </div>
+
+
+            <!-- PATIENT -->
+
+            <div class="queue-person">
+
+                <b>
+                    {{ a.patient.user.full_name }}
+                </b>
+
+                <small>
+
+                    Age {{ a.patient.age or '—' }}
+
+                    ·
+
+                    {{ a.patient.gender or '—' }}
+
+                    ·
+
+                    {{ a.patient.village or '—' }}
+
+                </small>
+
+            </div>
+
+
+            <!-- PRIORITY -->
+
+            <span class="priority p-{{ a.priority|lower }}">
+
+                {{ a.priority }}
+
+            </span>
+
+
+            <!-- STATUS -->
+
+            <span class="status">
+
+                {{ a.status }}
+
+            </span>
+
+
+            <!-- ACTION -->
+
+            {% if a.status in ['BOOKED', 'CHECKED-IN', 'WAITING'] %}
+
+            <form method="post"
+                  action="{{ url_for('doctor.start_serving', id=a.id) }}">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary">
+
+                    <i class="fa-solid fa-play"></i>
+
+                    Start Serving
+
+                </button>
+
+            </form>
+
+            {% endif %}
+
+
+        </div>
+
+
+        {% else %}
+
+
+        <div class="empty-state compact">
+
+            <i class="fa-solid fa-users"></i>
+
+            <p>
+                No patients waiting.
+            </p>
+
+        </div>
+
+
+        {% endfor %}
+
+    </section>
+
+
+    <!-- =================================================
+         NOW SERVING
+    ================================================== -->
+
+    <section class="panel">
+
+        <span class="eyebrow">
+            NOW SERVING
+        </span>
+
+
+        {% if serving %}
+
+
+        <div class="big-token">
+
+            #{{ serving.token_number }}
+
+        </div>
+
+
+        <h3>
+
+            {{ serving.patient.user.full_name }}
+
+        </h3>
+
+
+        <p class="muted">
+
+            {{ serving.patient.village or 'Village not available' }}
+
+        </p>
+
+
+        <div style="margin:15px 0;">
+
+            <small class="muted">
+                Priority
+            </small>
+
+            <br>
+
+            <strong>
+                {{ serving.priority }}
+            </strong>
+
+        </div>
+
+
+        <div style="margin-bottom:15px;">
+
+            <small class="muted">
+                Time slot
+            </small>
+
+            <br>
+
+            <strong>
+                {{ serving.time_slot }}
+            </strong>
+
+        </div>
+
+
+        <form method="post"
+              action="{{ url_for('doctor.complete', id=serving.id) }}">
+
+            <button
+                class="btn btn-primary w-100"
+                type="submit">
+
+                <i class="fa-solid fa-check"></i>
+
+                Mark consultation complete
+
+            </button>
+
+        </form>
+
+
+        {% else %}
+
+
+        <div class="empty-state compact">
+
+            <i class="fa-solid fa-user-clock"></i>
+
+            <p>
+                No active consultation.
+            </p>
+
+            <small class="muted">
+                Select a patient from the queue to start serving.
+            </small>
+
+        </div>
+
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+
+{% endblock %}

@@ -7,6 +7,7 @@
 {% block content %}
 
 <div class="page-actions">
+
     <div>
         <span class="eyebrow">PATIENT PORTAL</span>
         <h2>Good day, {{ current_user.full_name.split(' ')[0] }}.</h2>
@@ -14,109 +15,146 @@
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
 
-    <a class="btn btn-primary"
-       href="{{ url_for('patient.health_record') }}">
-        <i class="fa-solid fa-file-medical"></i>
-        My Health Record
-    </a>
+        <a class="btn btn-primary"
+           href="{{ url_for('patient.health_record') }}">
+            <i class="fa-solid fa-file-medical"></i>
+            My Health Record
+        </a>
 
-    <a class="btn btn-primary"
-       href="{{ url_for('patient.book') }}">
-        <i class="fa-solid fa-plus"></i>
-        Book appointment
-    </a>
+        <a class="btn btn-primary"
+           href="{{ url_for('patient.book') }}">
+            <i class="fa-solid fa-plus"></i>
+            Book appointment
+        </a>
+
+    </div>
 
 </div>
-</div>
 
 
-<!-- UPCOMING APPOINTMENT -->
+<!-- =====================================================
+     ACTIVE APPOINTMENT
+====================================================== -->
+
 {% if active_appointment %}
 
 <div class="panel upcoming-appointment">
 
     <div class="panel-head">
+
         <div>
-            <span class="eyebrow">UPCOMING APPOINTMENT</span>
-            <h3>Your next visit</h3>
+            <span class="eyebrow">TODAY'S APPOINTMENT</span>
+
+            <h3>
+                Your appointment
+            </h3>
         </div>
 
         <span class="status">
             {{ active_appointment.status }}
         </span>
+
     </div>
+
 
     <div class="appointment-details">
 
-        <!-- Doctor -->
+
+        <!-- DOCTOR -->
+
         <div class="appointment-item">
+
             <div class="appointment-icon">
                 <i class="fa-solid fa-user-doctor"></i>
             </div>
 
             <div>
+
                 <small>DOCTOR</small>
+
                 <strong>
-                    {{ active_appointment.doctor.name }}
+                    {{ active_appointment.doctor.user.full_name }}
                 </strong>
 
                 {% if active_appointment.doctor.specialization %}
+
                 <span>
                     {{ active_appointment.doctor.specialization }}
                 </span>
+
                 {% endif %}
+
             </div>
+
         </div>
 
 
-        <!-- Clinic -->
+        <!-- CLINIC -->
+
         <div class="appointment-item">
+
             <div class="appointment-icon">
                 <i class="fa-solid fa-hospital"></i>
             </div>
 
             <div>
+
                 <small>CLINIC</small>
+
                 <strong>
                     {{ active_appointment.clinic.name }}
                 </strong>
 
                 {% if active_appointment.doctor.room_number %}
+
                 <span>
-                    Room {{ active_appointment.doctor.room_number }}
+                    {{ active_appointment.doctor.room_number }}
                 </span>
+
                 {% endif %}
+
             </div>
+
         </div>
 
 
-        <!-- Date -->
+        <!-- DATE -->
+
         <div class="appointment-item">
+
             <div class="appointment-icon">
                 <i class="fa-solid fa-calendar"></i>
             </div>
 
             <div>
+
                 <small>DATE</small>
+
                 <strong>
                     {{ active_appointment.appointment_date }}
                 </strong>
 
                 <span>
-                    Scheduled visit
+                    Today's visit
                 </span>
+
             </div>
+
         </div>
 
 
-        <!-- Time -->
+        <!-- TIME -->
+
         <div class="appointment-item">
+
             <div class="appointment-icon">
                 <i class="fa-solid fa-clock"></i>
             </div>
 
             <div>
+
                 <small>TIME SLOT</small>
+
                 <strong>
                     {{ active_appointment.time_slot }}
                 </strong>
@@ -124,26 +162,59 @@
                 <span>
                     Please arrive a little early
                 </span>
+
             </div>
+
         </div>
 
 
-        <!-- Token -->
+        <!-- TOKEN -->
+
         <div class="appointment-item">
+
             <div class="appointment-icon">
                 <i class="fa-solid fa-ticket"></i>
             </div>
 
             <div>
+
                 <small>QUEUE TOKEN</small>
+
                 <strong>
                     #{{ active_appointment.token_number }}
                 </strong>
 
                 <span>
-                    Digital token
+                    Your digital queue token
                 </span>
+
             </div>
+
+        </div>
+
+
+        <!-- PRIORITY -->
+
+        <div class="appointment-item">
+
+            <div class="appointment-icon">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+
+            <div>
+
+                <small>PRIORITY</small>
+
+                <strong>
+                    {{ active_appointment.priority }}
+                </strong>
+
+                <span>
+                    Queue priority
+                </span>
+
+            </div>
+
         </div>
 
     </div>
@@ -153,13 +224,19 @@
 {% endif %}
 
 
-<!-- LIVE QUEUE -->
+<!-- =====================================================
+     LIVE QUEUE
+====================================================== -->
+
 {% if queue_info %}
 
 <div class="token-hero">
 
     <div>
-        <span class="eyebrow">LIVE TOKEN</span>
+
+        <span class="eyebrow">
+            LIVE QUEUE
+        </span>
 
         <div class="token">
             #{{ queue_info.your_token }}
@@ -170,44 +247,152 @@
             · {{ queue_info.doctor_name }}
             · {{ queue_info.clinic_name }}
         </p>
+
+    </div>
+
+
+    <div class="token-stats">
+
+
+        <div>
+
+            <b>
+                {{ queue_info.patients_ahead }}
+            </b>
+
+            <span>
+                patients ahead
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <b>
+                ~{{ queue_info.est_wait }}
+            </b>
+
+            <span>
+                min wait
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <b>
+                {% if queue_info.current_token %}
+                    #{{ queue_info.current_token }}
+                {% else %}
+                    —
+                {% endif %}
+            </b>
+
+            <span>
+                now serving
+            </span>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+{% elif active_appointment %}
+
+<!-- BOOKED BUT NOT YET SERVING -->
+
+<div class="token-hero">
+
+    <div>
+
+        <span class="eyebrow">
+            QUEUE TOKEN
+        </span>
+
+        <div class="token">
+            #{{ active_appointment.token_number }}
+        </div>
+
+        <p>
+            Appointment confirmed with
+            {{ active_appointment.doctor.user.full_name }}
+        </p>
+
     </div>
 
 
     <div class="token-stats">
 
         <div>
-            <b>{{ queue_info.patients_ahead }}</b>
-            <span>ahead</span>
+
+            <b>
+                BOOKED
+            </b>
+
+            <span>
+                appointment status
+            </span>
+
         </div>
 
         <div>
-            <b>~{{ queue_info.est_wait }}</b>
-            <span>min wait</span>
+
+            <b>
+                {{ active_appointment.time_slot }}
+            </b>
+
+            <span>
+                time slot
+            </span>
+
         </div>
 
         <div>
-            <b>{{ queue_info.current_token }}</b>
-            <span>serving</span>
+
+            <b>
+                #{{ active_appointment.token_number }}
+            </b>
+
+            <span>
+                your token
+            </span>
+
         </div>
 
     </div>
 
 </div>
 
-{% elif not active_appointment %}
+
+{% else %}
+
+
+<!-- NO APPOINTMENT -->
 
 <div class="empty-state">
 
     <i class="fa-solid fa-calendar-day"></i>
 
-    <h3>No active appointment today</h3>
+    <h3>
+        No active appointment today
+    </h3>
 
     <p>
         Book a visit and receive a digital token.
     </p>
 
-    <a class="btn btn-primary" href="{{ url_for('patient.book') }}">
+    <a class="btn btn-primary"
+       href="{{ url_for('patient.book') }}">
+
+        <i class="fa-solid fa-plus"></i>
+
         Book a visit
+
     </a>
 
 </div>
@@ -215,16 +400,22 @@
 {% endif %}
 
 
-<!-- LOWER DASHBOARD -->
+<!-- =====================================================
+     LOWER DASHBOARD
+====================================================== -->
+
 <div class="content-grid">
 
 
     <!-- APPOINTMENT HISTORY -->
+
     <section class="panel">
 
         <div class="panel-head">
 
-            <h3>Recent appointments</h3>
+            <h3>
+                Recent appointments
+            </h3>
 
             <span class="muted">
                 {{ history|length }} records
@@ -240,11 +431,13 @@
                 <thead>
 
                     <tr>
+
                         <th>Token</th>
                         <th>Doctor</th>
                         <th>Clinic</th>
                         <th>Date</th>
                         <th>Status</th>
+
                     </tr>
 
                 </thead>
@@ -257,7 +450,9 @@
                     <tr>
 
                         <td>
-                            <b>#{{ a.token_number }}</b>
+                            <b>
+                                #{{ a.token_number }}
+                            </b>
                         </td>
 
 
@@ -265,12 +460,14 @@
 
                             {% if a.doctor %}
 
-                                {{ a.doctor.name }}
+                                {{ a.doctor.user.full_name }}
 
                                 {% if a.doctor.specialization %}
+
                                 <small class="muted">
                                     {{ a.doctor.specialization }}
                                 </small>
+
                                 {% endif %}
 
                             {% else %}
@@ -283,7 +480,17 @@
 
 
                         <td>
-                            {{ a.clinic.name }}
+
+                            {% if a.clinic %}
+
+                                {{ a.clinic.name }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
                         </td>
 
 
@@ -302,12 +509,16 @@
 
                     </tr>
 
+
                     {% else %}
 
                     <tr>
 
-                        <td colspan="5" class="muted">
+                        <td colspan="5"
+                            class="muted">
+
                             No appointment history yet.
+
                         </td>
 
                     </tr>
@@ -324,11 +535,14 @@
 
 
     <!-- NOTIFICATIONS -->
+
     <section class="panel">
 
         <div class="panel-head">
 
-            <h3>Notifications</h3>
+            <h3>
+                Notifications
+            </h3>
 
         </div>
 
