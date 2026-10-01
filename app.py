@@ -4,7 +4,12 @@ from config import Config
 from models import db
 from models.user import User
 
-app = Flask(__name__)
+import os
+
+if os.environ.get("VERCEL"):
+    app = Flask(__name__, instance_path="/tmp/instance")
+else:
+    app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
