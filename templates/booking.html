@@ -1,1 +1,597 @@
-{% extends 'base.html' %}{% block title %}Book Appointment | GramCare{% endblock %}{% block heading %}Book a clinic visit{% endblock %}{% block content %}<div class="form-card"><span class="eyebrow">SMART BOOKING</span><h2>Choose clinic and doctor</h2><p class="muted">Your token is generated automatically for today's queue.</p><form method="post" class="row g-3"><div class="col-md-6"><label>Clinic</label><select name="clinic_id" required>{% for c in clinics %}<option value="{{ c.id }}">{{ c.name }} — {{ c.taluka }}</option>{% endfor %}</select></div><div class="col-md-6"><label>Doctor</label><select name="doctor_id" required>{% for d in doctors %}<option value="{{ d.id }}">Dr. {{ d.user.full_name }} · {{ d.specialization }}</option>{% endfor %}</select></div><div class="col-md-6"><label>Preferred slot</label><select name="time_slot"><option>09:00 AM - 10:00 AM</option><option>10:00 AM - 11:00 AM</option><option>11:00 AM - 12:00 PM</option><option>02:00 PM - 03:00 PM</option></select></div><div class="col-12"><button class="btn btn-primary">Confirm appointment <i class="fa-solid fa-arrow-right"></i></button></div></form></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}
+Book Appointment | GramCare
+{% endblock %}
+
+{% block heading %}
+Book a Clinic Visit
+{% endblock %}
+
+{% block content %}
+
+<div class="booking-page">
+
+    <!-- HEADER -->
+    <div class="booking-hero">
+
+        <div>
+            <span class="eyebrow">
+                SMART APPOINTMENT BOOKING
+            </span>
+
+            <h2>
+                Find the right doctor for you
+            </h2>
+
+            <p class="muted">
+                Select your clinic, medical department and preferred doctor.
+                Your queue token will be generated automatically.
+            </p>
+        </div>
+
+        <div class="booking-status">
+            <i class="fa-solid fa-shield-heart"></i>
+            <span>
+                Secure patient booking
+            </span>
+        </div>
+
+    </div>
+
+
+    <!-- BOOKING CARD -->
+    <div class="form-card booking-card">
+
+        <form
+            method="post"
+            id="appointmentForm"
+        >
+
+            <!-- STEP 1 -->
+            <div class="booking-step">
+
+                <div class="step-number">
+                    01
+                </div>
+
+                <div class="step-content">
+
+                    <label for="clinic_id">
+                        Select Clinic
+                    </label>
+
+                    <select
+                        name="clinic_id"
+                        id="clinic_id"
+                        required
+                    >
+
+                        <option value="">
+                            Choose a clinic
+                        </option>
+
+                        {% for clinic in clinics %}
+
+                        <option
+                            value="{{ clinic.id }}"
+                        >
+                            {{ clinic.name }}
+                            — {{ clinic.taluka }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                    <small class="field-help">
+                        Choose the healthcare facility where you want
+                        to consult.
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- STEP 2 -->
+            <div class="booking-step">
+
+                <div class="step-number">
+                    02
+                </div>
+
+                <div class="step-content">
+
+                    <label for="specialization">
+                        Select Department
+                    </label>
+
+                    <select
+                        name="specialization"
+                        id="specialization"
+                        required
+                    >
+
+                        <option value="">
+                            Choose medical department
+                        </option>
+
+                        {% for specialty in specializations %}
+
+                        <option
+                            value="{{ specialty }}"
+                        >
+                            {{ specialty }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                    <small class="field-help">
+                        Select the type of doctor you want to consult.
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- STEP 3 -->
+            <div class="booking-step">
+
+                <div class="step-number">
+                    03
+                </div>
+
+                <div class="step-content">
+
+                    <label for="doctor_id">
+                        Select Doctor
+                    </label>
+
+                    <select
+                        name="doctor_id"
+                        id="doctor_id"
+                        required
+                        disabled
+                    >
+
+                        <option value="">
+                            First select clinic and department
+                        </option>
+
+                    </select>
+
+                    <div
+                        id="doctorInfo"
+                        class="doctor-info"
+                        style="display:none;"
+                    >
+
+                        <div class="doctor-info-icon">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+
+                        <div>
+
+                            <strong id="selectedDoctorName">
+                            </strong>
+
+                            <span id="selectedDoctorSpecialty">
+                            </span>
+
+                            <small id="selectedDoctorRoom">
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- STEP 4 -->
+            <div class="booking-step">
+
+                <div class="step-number">
+                    04
+                </div>
+
+                <div class="step-content">
+
+                    <label for="time_slot">
+                        Preferred Time Slot
+                    </label>
+
+                    <select
+                        name="time_slot"
+                        id="time_slot"
+                        required
+                    >
+
+                        <option>
+                            09:00 AM - 10:00 AM
+                        </option>
+
+                        <option>
+                            10:00 AM - 11:00 AM
+                        </option>
+
+                        <option>
+                            11:00 AM - 12:00 PM
+                        </option>
+
+                        <option>
+                            12:00 PM - 01:00 PM
+                        </option>
+
+                        <option>
+                            02:00 PM - 03:00 PM
+                        </option>
+
+                        <option>
+                            03:00 PM - 04:00 PM
+                        </option>
+
+                        <option>
+                            04:00 PM - 05:00 PM
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- APPOINTMENT PREVIEW -->
+            <div
+                class="appointment-preview"
+                id="appointmentPreview"
+            >
+
+                <div class="preview-icon">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+
+                <div>
+
+                    <strong>
+                        Appointment Preview
+                    </strong>
+
+                    <p id="previewText">
+                        Select your clinic and doctor to see
+                        your appointment summary.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- SUBMIT -->
+            <div class="booking-actions">
+
+                <a
+                    href="{{ url_for('patient.dashboard') }}"
+                    class="btn btn-secondary"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    id="confirmButton"
+                    disabled
+                >
+
+                    Confirm Appointment
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const clinicSelect =
+            document.getElementById("clinic_id");
+
+        const specialtySelect =
+            document.getElementById("specialization");
+
+        const doctorSelect =
+            document.getElementById("doctor_id");
+
+        const timeSlotSelect =
+            document.getElementById("time_slot");
+
+        const confirmButton =
+            document.getElementById("confirmButton");
+
+        const doctorInfo =
+            document.getElementById("doctorInfo");
+
+        const doctorName =
+            document.getElementById("selectedDoctorName");
+
+        const doctorSpecialty =
+            document.getElementById("selectedDoctorSpecialty");
+
+        const doctorRoom =
+            document.getElementById("selectedDoctorRoom");
+
+        const previewText =
+            document.getElementById("previewText");
+
+
+        let doctors = [];
+
+
+        // -------------------------------------------------
+        // LOAD DOCTORS
+        // -------------------------------------------------
+
+        async function loadDoctors() {
+
+            const clinicId =
+                clinicSelect.value;
+
+            const specialty =
+                specialtySelect.value;
+
+            doctorSelect.innerHTML = "";
+
+            doctorSelect.disabled = true;
+
+            doctorInfo.style.display = "none";
+
+            confirmButton.disabled = true;
+
+
+            if (!clinicId || !specialty) {
+
+                doctorSelect.innerHTML =
+                    '<option value="">First select clinic and department</option>';
+
+                updatePreview();
+
+                return;
+            }
+
+
+            doctorSelect.innerHTML =
+                '<option value="">Loading available doctors...</option>';
+
+
+            try {
+
+                const params =
+                    new URLSearchParams({
+                        clinic_id: clinicId,
+                        specialization: specialty
+                    });
+
+
+                const response =
+                    await fetch(
+                        "{{ url_for('patient.doctors_api') }}?" +
+                        params.toString()
+                    );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Unable to load doctors"
+                    );
+
+                }
+
+
+                doctors =
+                    await response.json();
+
+
+                doctorSelect.innerHTML =
+                    '<option value="">Choose an available doctor</option>';
+
+
+                if (doctors.length === 0) {
+
+                    doctorSelect.innerHTML =
+                        '<option value="">No doctor available for this department</option>';
+
+                    updatePreview();
+
+                    return;
+                }
+
+
+                doctors.forEach(
+                    function (doctor) {
+
+                        const option =
+                            document.createElement("option");
+
+                        option.value =
+                            doctor.id;
+
+                        option.textContent =
+                            `${doctor.name} — Room ${doctor.room_number.replace("Room #", "")}`;
+
+                        doctorSelect.appendChild(option);
+
+                    }
+                );
+
+
+                doctorSelect.disabled = false;
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                doctorSelect.innerHTML =
+                    '<option value="">Unable to load doctors</option>';
+
+            }
+
+
+            updatePreview();
+
+        }
+
+
+        // -------------------------------------------------
+        // DOCTOR SELECTED
+        // -------------------------------------------------
+
+        doctorSelect.addEventListener(
+            "change",
+            function () {
+
+                const selectedId =
+                    parseInt(
+                        doctorSelect.value
+                    );
+
+
+                const doctor =
+                    doctors.find(
+                        function (item) {
+                            return item.id === selectedId;
+                        }
+                    );
+
+
+                if (!doctor) {
+
+                    doctorInfo.style.display =
+                        "none";
+
+                    confirmButton.disabled =
+                        true;
+
+                    updatePreview();
+
+                    return;
+                }
+
+
+                doctorName.textContent =
+                    doctor.name;
+
+                doctorSpecialty.textContent =
+                    doctor.specialization;
+
+                doctorRoom.textContent =
+                    `Consultation Room: ${doctor.room_number}`;
+
+
+                doctorInfo.style.display =
+                    "flex";
+
+
+                confirmButton.disabled =
+                    false;
+
+
+                updatePreview();
+
+            }
+        );
+
+
+        // -------------------------------------------------
+        // CLINIC / SPECIALIZATION CHANGED
+        // -------------------------------------------------
+
+        clinicSelect.addEventListener(
+            "change",
+            loadDoctors
+        );
+
+
+        specialtySelect.addEventListener(
+            "change",
+            loadDoctors
+        );
+
+
+        timeSlotSelect.addEventListener(
+            "change",
+            updatePreview
+        );
+
+
+        // -------------------------------------------------
+        // PREVIEW
+        // -------------------------------------------------
+
+        function updatePreview() {
+
+            const clinic =
+                clinicSelect.options[
+                    clinicSelect.selectedIndex
+                ]?.text || "";
+
+            const specialty =
+                specialtySelect.value || "";
+
+            const doctor =
+                doctors.find(
+                    function (item) {
+                        return item.id ===
+                            parseInt(doctorSelect.value);
+                    }
+                );
+
+            const time =
+                timeSlotSelect.value;
+
+
+            if (
+                !clinicSelect.value ||
+                !specialty ||
+                !doctor
+            ) {
+
+                previewText.textContent =
+                    "Select your clinic and doctor to see your appointment summary.";
+
+                return;
+            }
+
+
+            previewText.textContent =
+                `${doctor.name} • ${specialty} • ${clinic} • ${time}`;
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}

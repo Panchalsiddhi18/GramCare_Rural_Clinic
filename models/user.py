@@ -28,11 +28,47 @@ class Patient(db.Model):
     __tablename__ = 'patients'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    age = db.Column(db.Integer, nullable=True)
-    gender = db.Column(db.String(10), nullable=True)
-    village = db.Column(db.String(100), nullable=True)
-    abha_id = db.Column(db.String(20), nullable=True)
-    
-    appointments = db.relationship('Appointment', backref='patient', lazy=True)
 
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    # Basic information
+    age = db.Column(db.Integer, nullable=True)
+    gender = db.Column(db.String(20), nullable=True)
+    village = db.Column(db.String(100), nullable=True)
+    abha_id = db.Column(db.String(50), nullable=True)
+
+    # Health profile
+    blood_group = db.Column(
+        db.String(10),
+        nullable=True
+    )
+
+    emergency_contact = db.Column(
+        db.String(20),
+        nullable=True
+    )
+
+    allergies = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    medical_history = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    current_medications = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    appointments = db.relationship(
+        'Appointment',
+        backref='patient',
+        lazy=True
+    )

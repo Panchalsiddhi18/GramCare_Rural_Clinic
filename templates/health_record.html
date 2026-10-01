@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}My Health Record | GramCare{% endblock %}
+
+{% block heading %}My Health Record{% endblock %}
+
+{% block content %}
+
+<div class="page-actions">
+
+    <div>
+        <span class="eyebrow">PATIENT HEALTH PROFILE</span>
+        <h2>My Health Record</h2>
+        <p class="muted">
+            Your important health information in one place.
+        </p>
+    </div>
+
+   <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+    <a class="btn"
+       href="{{ url_for('patient.dashboard') }}">
+
+        <i class="fa-solid fa-arrow-left"></i>
+
+        Dashboard
+
+    </a>
+
+
+    <a class="btn btn-primary"
+       href="{{ url_for('patient.edit_health_record') }}">
+
+        <i class="fa-solid fa-pen"></i>
+
+        Edit Health Profile
+
+    </a>
+
+</div>
+</div>
+
+
+<!-- PATIENT PROFILE CARD -->
+
+<div class="panel health-profile-card">
+
+    <div class="profile-header">
+
+        <div class="profile-avatar">
+            <i class="fa-solid fa-user"></i>
+        </div>
+
+        <div>
+
+            <span class="eyebrow">PATIENT</span>
+
+            <h2>
+                {{ current_user.full_name }}
+            </h2>
+
+            <p class="muted">
+                Patient ID: GC-P{{ '%04d'|format(patient.id) }}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="health-info-grid">
+
+        <div class="health-info-item">
+            <span>AGE</span>
+            <strong>
+                {{ patient.age if patient.age else 'Not added' }}
+            </strong>
+        </div>
+
+        <div class="health-info-item">
+            <span>GENDER</span>
+            <strong>
+                {{ patient.gender if patient.gender else 'Not added' }}
+            </strong>
+        </div>
+
+        <div class="health-info-item">
+            <span>BLOOD GROUP</span>
+            <strong>
+                {{ patient.blood_group if patient.blood_group else 'Not added' }}
+            </strong>
+        </div>
+
+        <div class="health-info-item">
+            <span>VILLAGE</span>
+            <strong>
+                {{ patient.village if patient.village else 'Not added' }}
+            </strong>
+        </div>
+
+        <div class="health-info-item">
+            <span>ABHA ID</span>
+            <strong>
+                {{ patient.abha_id if patient.abha_id else 'Not added' }}
+            </strong>
+        </div>
+
+        <div class="health-info-item">
+            <span>EMERGENCY CONTACT</span>
+            <strong>
+                {{ patient.emergency_contact if patient.emergency_contact else 'Not added' }}
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- HEALTH INFORMATION -->
+
+<div class="content-grid">
+
+
+    <!-- ALLERGIES -->
+
+    <section class="panel">
+
+        <div class="panel-head">
+
+            <h3>
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Allergies
+            </h3>
+
+        </div>
+
+        <div class="health-text">
+
+            {% if patient.allergies %}
+
+                {{ patient.allergies }}
+
+            {% else %}
+
+                <span class="muted">
+                    No allergies recorded.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- CURRENT MEDICATIONS -->
+
+    <section class="panel">
+
+        <div class="panel-head">
+
+            <h3>
+                <i class="fa-solid fa-pills"></i>
+                Current Medications
+            </h3>
+
+        </div>
+
+        <div class="health-text">
+
+            {% if patient.current_medications %}
+
+                {{ patient.current_medications }}
+
+            {% else %}
+
+                <span class="muted">
+                    No current medications recorded.
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+</div>
+
+
+<!-- MEDICAL HISTORY -->
+
+<section class="panel">
+
+    <div class="panel-head">
+
+        <h3>
+            <i class="fa-solid fa-file-medical"></i>
+            Medical History
+        </h3>
+
+    </div>
+
+    <div class="health-text large">
+
+        {% if patient.medical_history %}
+
+            {{ patient.medical_history }}
+
+        {% else %}
+
+            <span class="muted">
+                No medical history recorded yet.
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<!-- PREVIOUS VISITS -->
+
+<section class="panel">
+
+    <div class="panel-head">
+
+        <div>
+            <h3>
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                Previous Visits
+            </h3>
+
+            <span class="muted">
+                {{ history|length }} appointment records
+            </span>
+        </div>
+
+    </div>
+
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Token</th>
+                    <th>Doctor</th>
+                    <th>Clinic</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for appointment in history|sort(attribute='appointment_date', reverse=true) %}
+
+                <tr>
+
+                    <td>
+                        <b>
+                            #{{ appointment.token_number }}
+                        </b>
+                    </td>
+
+                    <td>
+
+                        {% if appointment.doctor %}
+
+                            {{ appointment.doctor.name }}
+
+                            {% if appointment.doctor.specialization %}
+                                <small class="muted">
+                                    {{ appointment.doctor.specialization }}
+                                </small>
+                            {% endif %}
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        {{ appointment.clinic.name }}
+                    </td>
+
+                    <td>
+                        {{ appointment.appointment_date }}
+                    </td>
+
+                    <td>
+                        {{ appointment.time_slot }}
+                    </td>
+
+                    <td>
+
+                        <span class="status">
+                            {{ appointment.status }}
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                {% else %}
+
+                <tr>
+
+                    <td colspan="6" class="muted">
+                        No previous visits found.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}

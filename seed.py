@@ -1,71 +1,373 @@
 from app import app
 from models import db
+
 from models.user import User, Patient
 from models.clinic import Clinic, Doctor
 from models.appointment import Appointment
 from models.notification import Notification
-from datetime import date, datetime
+
+from datetime import date
+
 
 def seed_database():
+
     with app.app_context():
+
+        # -------------------------------------------------
+        # RESET DATABASE
+        # -------------------------------------------------
+
         db.drop_all()
         db.create_all()
 
-        # 1. Clinics
-        c1 = Clinic(name="GramCare Primary Health Centre", district="Palanpur", taluka="Banaskantha", address="Main Highway Road, Village Centre", avg_consultation_time=8)
-        c2 = Clinic(name="Community Health Centre - Deesa", district="Palanpur", taluka="Deesa", address="Near Bus Station", avg_consultation_time=10)
-        db.session.add_all([c1, c2])
+
+        # =================================================
+        # 1. CLINICS
+        # =================================================
+
+        clinic_1 = Clinic(
+            name="GramCare Primary Health Centre",
+            district="Palanpur",
+            taluka="Banaskantha",
+            address="Main Highway Road, Village Centre",
+            avg_consultation_time=8
+        )
+
+        clinic_2 = Clinic(
+            name="Community Health Centre - Deesa",
+            district="Palanpur",
+            taluka="Deesa",
+            address="Near Bus Station",
+            avg_consultation_time=10
+        )
+
+        db.session.add_all([
+            clinic_1,
+            clinic_2
+        ])
+
         db.session.commit()
 
-        # 2. Staff User
-        u_staff = User(email="staff@demo.com", role="staff", full_name="Ramesh Patel (Staff)", phone="9876543210")
-        u_staff.set_password("demo123")
-        db.session.add(u_staff)
 
-        # 3. Doctor User & Profile
-        u_doc = User(email="doctor@demo.com", role="doctor", full_name="Dr. Anil Sharma", phone="9876543211")
-        u_doc.set_password("demo123")
-        db.session.add(u_doc)
-        db.session.flush()
+        # =================================================
+        # 2. STAFF
+        # =================================================
 
-        doc1 = Doctor(user_id=u_doc.id, clinic_id=c1.id, specialization="General Physician", room_number="Room #2")
-        db.session.add(doc1)
+        staff_user = User(
+            email="staff@demo.com",
+            role="staff",
+            full_name="Ramesh Patel",
+            phone="9876543210"
+        )
 
-        # 4. Patient User & Profile
-        u_pat = User(email="patient@demo.com", role="patient", full_name="Sita Devi", phone="9876543212")
-        u_pat.set_password("demo123")
-        db.session.add(u_pat)
-        db.session.flush()
+        staff_user.set_password("demo123")
 
-        pat1 = Patient(user_id=u_pat.id, age=62, gender="Female", village="Gadh Village", abha_id="ABHA-1029-3847")
-        db.session.add(pat1)
+        db.session.add(staff_user)
+
+
+        # =================================================
+        # 3. DOCTORS
+        # =================================================
+
+        doctors_data = [
+
+            {
+                "email": "doctor.anil@demo.com",
+                "name": "Dr. Anil Sharma",
+                "phone": "9876543211",
+                "clinic": clinic_1,
+                "specialization": "General Physician",
+                "room": "Room #2"
+            },
+
+            {
+                "email": "doctor.meera@demo.com",
+                "name": "Dr. Meera Joshi",
+                "phone": "9876543213",
+                "clinic": clinic_1,
+                "specialization": "Pediatrician",
+                "room": "Room #3"
+            },
+
+            {
+                "email": "doctor.kavita@demo.com",
+                "name": "Dr. Kavita Patel",
+                "phone": "9876543214",
+                "clinic": clinic_1,
+                "specialization": "Gynecologist",
+                "room": "Room #4"
+            },
+
+            {
+                "email": "doctor.rajiv@demo.com",
+                "name": "Dr. Rajiv Shah",
+                "phone": "9876543215",
+                "clinic": clinic_2,
+                "specialization": "Orthopedic",
+                "room": "Room #1"
+            },
+
+            {
+                "email": "doctor.neha@demo.com",
+                "name": "Dr. Neha Desai",
+                "phone": "9876543216",
+                "clinic": clinic_2,
+                "specialization": "Dermatologist",
+                "room": "Room #2"
+            }
+
+        ]
+
+
+        doctor_profiles = []
+
+
+        for data in doctors_data:
+
+            user = User(
+                email=data["email"],
+                role="doctor",
+                full_name=data["name"],
+                phone=data["phone"]
+            )
+
+            user.set_password("demo123")
+
+            db.session.add(user)
+
+            db.session.flush()
+
+
+            doctor = Doctor(
+                user_id=user.id,
+                clinic_id=data["clinic"].id,
+                specialization=data["specialization"],
+                room_number=data["room"],
+                is_available=True
+            )
+
+            db.session.add(doctor)
+
+            doctor_profiles.append(
+                doctor
+            )
+
+
         db.session.commit()
 
-        # 5. Additional Demo Patients for Queue Depth
-        demo_names = ["Kishan Kumar", "Radha Ben", "Mohan Lal", "Vikram Singh"]
+
+        # =================================================
+        # 4. DEMO PATIENT
+        # =================================================
+
+        patient_user = User(
+            email="patient@demo.com",
+            role="patient",
+            full_name="Sita Devi",
+            phone="9876543212"
+        )
+
+        patient_user.set_password("demo123")
+
+        db.session.add(patient_user)
+
+        db.session.flush()
+
+
+        patient = Patient(
+            user_id=patient_user.id,
+            age=62,
+            gender="Female",
+            village="Gadh Village",
+            abha_id="ABHA-1029-3847"
+        )
+
+        db.session.add(patient)
+
+        db.session.commit()
+
+
+        # =================================================
+        # 5. DEMO QUEUE
+        # =================================================
+
+        general_doctor = doctor_profiles[0]
+
         today = date.today()
 
-        # Create active appointments
-        a1 = Appointment(patient_id=pat1.id, doctor_id=doc1.id, clinic_id=c1.id, appointment_date=today, time_slot="09:00 AM", status="NOW SERVING", priority="ELDERLY", token_number=101)
-        db.session.add(a1)
 
-        for idx, name in enumerate(demo_names, start=102):
-            u = User(email=f"patient_{idx}@demo.com", role="patient", full_name=name)
-            u.set_password("demo123")
-            db.session.add(u)
+        # Current patient
+        current_appointment = Appointment(
+            patient_id=patient.id,
+            doctor_id=general_doctor.id,
+            clinic_id=clinic_1.id,
+            appointment_date=today,
+            time_slot="09:00 AM",
+            status="NOW SERVING",
+            priority="ELDERLY",
+            token_number=101
+        )
+
+        db.session.add(
+            current_appointment
+        )
+
+
+        # -------------------------------------------------
+        # Additional queue patients
+        # -------------------------------------------------
+
+        demo_patients = [
+
+            {
+                "name": "Kishan Kumar",
+                "email": "patient_102@demo.com",
+                "age": 34,
+                "gender": "Male",
+                "priority": "NORMAL",
+                "token": 102
+            },
+
+            {
+                "name": "Radha Ben",
+                "email": "patient_103@demo.com",
+                "age": 29,
+                "gender": "Female",
+                "priority": "PREGNANT",
+                "token": 103
+            },
+
+            {
+                "name": "Mohan Lal",
+                "email": "patient_104@demo.com",
+                "age": 45,
+                "gender": "Male",
+                "priority": "URGENT",
+                "token": 104
+            },
+
+            {
+                "name": "Vikram Singh",
+                "email": "patient_105@demo.com",
+                "age": 41,
+                "gender": "Male",
+                "priority": "NORMAL",
+                "token": 105
+            }
+
+        ]
+
+
+        for data in demo_patients:
+
+            user = User(
+                email=data["email"],
+                role="patient",
+                full_name=data["name"]
+            )
+
+            user.set_password("demo123")
+
+            db.session.add(user)
+
             db.session.flush()
 
-            p = Patient(user_id=u.id, age=30 + idx % 20, gender="Male" if idx % 2 == 0 else "Female", village="Nearby Village")
-            db.session.add(p)
+
+            demo_patient = Patient(
+                user_id=user.id,
+                age=data["age"],
+                gender=data["gender"],
+                village="Nearby Village"
+            )
+
+            db.session.add(
+                demo_patient
+            )
+
             db.session.flush()
 
-            priority_type = "PREGNANT" if idx == 103 else ("URGENT" if idx == 104 else "NORMAL")
-            appt = Appointment(patient_id=p.id, doctor_id=doc1.id, clinic_id=c1.id, appointment_date=today, time_slot="09:30 AM", status="WAITING", priority=priority_type, token_number=idx)
-            db.session.add(appt)
+
+            appointment = Appointment(
+                patient_id=demo_patient.id,
+                doctor_id=general_doctor.id,
+                clinic_id=clinic_1.id,
+                appointment_date=today,
+                time_slot="09:30 AM",
+                status="WAITING",
+                priority=data["priority"],
+                token_number=data["token"]
+            )
+
+            db.session.add(
+                appointment
+            )
+
+
+        # =================================================
+        # 6. DEMO NOTIFICATION
+        # =================================================
+
+        notification = Notification(
+            user_id=patient_user.id,
+            message=(
+                "Welcome to GramCare. "
+                "You can now choose a clinic, "
+                "department and doctor for your appointment."
+            ),
+            category="SYSTEM"
+        )
+
+        db.session.add(
+            notification
+        )
+
+
+        # =================================================
+        # SAVE EVERYTHING
+        # =================================================
 
         db.session.commit()
-        print("Demo database populated successfully with realistic queue data.")
 
-if __name__ == '__main__':
+
+        print("")
+        print("=" * 60)
+        print("GRAMCARE DEMO DATABASE CREATED")
+        print("=" * 60)
+
+        print("")
+        print("CLINICS")
+        print("1. GramCare Primary Health Centre")
+        print("2. Community Health Centre - Deesa")
+
+        print("")
+        print("DOCTORS")
+
+        for doctor in doctor_profiles:
+
+            print(
+                f"- {doctor.user.full_name} | "
+                f"{doctor.specialization} | "
+                f"{doctor.clinic.name}"
+            )
+
+        print("")
+        print("PATIENT LOGIN")
+        print("Email: patient@demo.com")
+        print("Password: demo123")
+
+        print("")
+        print("DOCTOR LOGINS")
+
+        for data in doctors_data:
+
+            print(
+                f"{data['email']} / demo123"
+            )
+
+        print("")
+        print("Database seeded successfully.")
+        print("=" * 60)
+
+
+if __name__ == "__main__":
     seed_database()
-
